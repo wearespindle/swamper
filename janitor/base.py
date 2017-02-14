@@ -1,4 +1,5 @@
 import collections
+import inspect
 
 import six
 
@@ -8,17 +9,15 @@ NON_FIELD_ERRORS = None
 
 class BaseJanitor(object):
 
-    def __init__(self, fields, data, instances=None, error_class=ValueError, skip_verify=False):
+    def __init__(self, fields, data, error_class=ValueError, skip_verify=False):
         self.fields = fields
         self.data = data
-        self.instances = instances or []
+        self.instances = {}
+        self.build_instances()
 
         self.skip_verify = skip_verify
         if not self.skip_verify:
             self._verify_args()
-
-        # Unpack instances after verify.
-        self.instances = {type(instance): instance for instance in self.instances}
 
         self._errors = None
         self.error_class = error_class
@@ -40,10 +39,20 @@ class BaseJanitor(object):
             raise TypeError("'data' must be a 2-dimensional iterable (dict, ..)")
 
         # Verify instances type.
-        if (not isinstance(self.instances, collections.Iterable) or
-                isinstance(self.instances, collections.Mapping) or
-                isinstance(self.instances, six.string_types)):
-            raise TypeError("'instances' must be a 1-dimensional iterable (list, tuple, ..)")
+        if not isinstance(self.instances, collections.Mapping):
+            raise TypeError("'instances' must be a 2-dimensional iterable (dict, ..)")
+
+    def build_instances(self):
+        """
+        Build self.instances.
+        """
+        pass
+
+    def clean_instances(self):
+        """
+        Clean self.instances.
+        """
+        pass
 
     def handle_error(self, field, error):
         if not isinstance(error, self.error_class):
@@ -56,6 +65,12 @@ class BaseJanitor(object):
         if self._errors is None:
             self.full_clean()
         return self._errors
+
+    def is_clean(self):
+        """
+        Returns True if the form has no errors.
+        """
+        return not self.errors
 
     def add_error(self, field, message):
         error_list = self.handle_error(field, message)
@@ -74,8 +89,13 @@ class BaseJanitor(object):
         self._errors = {}
         self.cleaned_data = {}
 
-        self._clean_fields()
-        self._clean_all()
+        try:
+            self.clean_instances()
+        except self.error_class as e:
+            self.add_error(NON_FIELD_ERRORS, e)
+        else:
+            self._clean_fields()
+            self._clean_all()
 
     def _clean_fields(self):
         for field in self.fields:
@@ -105,7 +125,7 @@ class BaseJanitor(object):
         if field in self.cleaned_data:
             setattr(instance, field, self.cleaned_data[field])
 
-    def fix_me_a(self, object_class, fields):
+    def get_or_update(self, object_or_class, fields):
         if not self.skip_verify:
             # Verify fields type.
             if not (isinstance(fields, collections.Iterable) and
@@ -119,12 +139,15 @@ class BaseJanitor(object):
                     raise TypeError("'fields' must only contain field names")
 
             # Verify if all instances type were pre-defined.
-            if self.instances and object_class not in self.instances:
-                raise TypeError("'object_class' must be in 'instances'")
+            if self.instances and object_or_class not in self.instances:
+                raise TypeError("'object_or_class' must be in 'instances'")
 
-        instance = self.instances.get(object_class, object_class())
+        if inspect.isclass(object_or_class):
+            instance = self.instances.get(object_or_class, object_or_class())
+        else:
+            instance = object_or_class
+
         for field in fields:
             self.setattr(instance, field, self.cleaned_data[field])
 
         return instance
-    fix_me_an = fix_me_a
