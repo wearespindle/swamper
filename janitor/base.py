@@ -10,6 +10,16 @@ NON_FIELD_ERRORS = None
 class BaseJanitor(object):
 
     def __init__(self, fields, data, error_class=ValueError, skip_verify=False):
+        """
+        Build a janitor that clean given fields from data.
+
+        Args:
+            fields (list): list of field names to clean.
+            data (dict): input to clean.
+            error_class (Exception): class to catch from cleaning methods,
+                these will end up as error messages.
+            skip_verify (bool): toggle argument type checking (default=False).
+        """
         self.fields = fields
         self.data = data
         self.instances = {}
@@ -23,6 +33,12 @@ class BaseJanitor(object):
         self.error_class = error_class
 
     def _verify_args(self):
+        """
+        Validate types for variables that indicate what to clean.
+
+        Raises:
+            TypeError: when types not match for fields, data or instances.
+        """
         # Verify fields type.
         if (not isinstance(self.fields, collections.Iterable) or
                 isinstance(self.fields, collections.Mapping) or
@@ -55,6 +71,17 @@ class BaseJanitor(object):
         pass
 
     def handle_error(self, field, error):
+        """
+        Turn an error (message) into an error (class).
+
+        Args:
+            field (str): name of the field to add the error for.
+            error (str|self.error_class): cast error to this type if it isn't
+                already.
+
+        Returns:
+            list: one or more error messages for said field.
+        """
         if not isinstance(error, self.error_class):
             error = self.error_class(error)
 
@@ -62,17 +89,37 @@ class BaseJanitor(object):
 
     @property
     def errors(self):
+        """
+        Build errors when never done so before.
+
+        Returns:
+            dict: Map of field to list of errors.
+        """
         if self._errors is None:
             self.full_clean()
         return self._errors
 
     def is_clean(self):
         """
-        Returns True if the form has no errors.
+        Indicates if there were no errors cleaning input.
+
+        Returns:
+            bool: True if the form has no errors.
         """
         return not self.errors
 
     def add_error(self, field, message):
+        """
+        Add one or more error messages for a field. When adding an error for
+        a field, this field is also removed from `cleaned_data`.
+
+        Args:
+            field (str): name of the field to add the error for.
+            message (str|self.error_class): error message for given field.
+
+        Raises:
+            ValueError: if field was never specified when creating this janitor.
+        """
         error_list = self.handle_error(field, message)
 
         if field not in self.errors:
@@ -86,6 +133,11 @@ class BaseJanitor(object):
             del self.cleaned_data[field]
 
     def full_clean(self):
+        """
+        Clean instances, fields and do a post clean where you have access to
+        all cleaned input data so far. When an error is raised during cleaning
+        of instances, don't continue.
+        """
         self._errors = {}
         self.cleaned_data = {}
 
@@ -98,6 +150,10 @@ class BaseJanitor(object):
             self._clean_all()
 
     def _clean_fields(self):
+        """
+        Run all clean methods for predefined fields, these methods are also
+        called when the correspondig field isn't present in the input data.
+        """
         for field in self.fields:
             value = self.data.get(field)
             self.cleaned_data[field] = value
@@ -110,6 +166,9 @@ class BaseJanitor(object):
                 self.add_error(field, e)
 
     def _clean_all(self):
+        """
+        Run the global method to clean fields that depend on each other.
+        """
         try:
             cleaned_data = self.clean()
         except self.error_class as e:
@@ -119,13 +178,52 @@ class BaseJanitor(object):
                 self.cleaned_data = cleaned_data
 
     def clean(self):
+        """
+        In this method you can clean fields that depend on each other.
+
+        Returns:
+            dict: the final cleaned data.
+        """
         return self.cleaned_data
 
     def setattr(self, instance, field, value):
+        """
+        Assign value for field on instance.
+
+        This is a separate method to make overriding easy. This method is used
+        by `build_or_update`.
+
+        Args:
+            instance (object): any object to set the value for field on.
+            field (str): name of the attribute to set from `cleaned_data`.
+            value (object): any value you want to assign for field on the
+                given instance.
+        """
         if field in self.cleaned_data:
             setattr(instance, field, self.cleaned_data[field])
 
-    def get_or_update(self, object_or_class, fields):
+    def build_or_update(self, instance_or_class, fields):
+        """
+        Return an object with all fields assigned to it from the cleaned data.
+
+        Args:
+            instance_or_class (object|type): instance or type to build instance
+                for to return with the field values assigned.
+            fields (list): list of field names to assign for instance.
+
+        Returns:
+            object: instance with (updated) values for `fields`.
+        """
+        if not self.is_clean():
+            raise ValueError('Cannot build or update because there are errors')
+
+        if inspect.isclass(instance_or_class):
+            klass = instance_or_class
+            instance = self.instances.get(instance_or_class, instance_or_class())
+        else:
+            klass = type(instance_or_class)
+            instance = instance_or_class
+
         if not self.skip_verify:
             # Verify fields type.
             if not (isinstance(fields, collections.Iterable) and
@@ -138,14 +236,9 @@ class BaseJanitor(object):
                 if not isinstance(field, six.string_types):
                     raise TypeError("'fields' must only contain field names")
 
-            # Verify if all instances type were pre-defined.
-            if self.instances and object_or_class not in self.instances:
-                raise TypeError("'object_or_class' must be in 'instances'")
-
-        if inspect.isclass(object_or_class):
-            instance = self.instances.get(object_or_class, object_or_class())
-        else:
-            instance = object_or_class
+        # Verify if all instances type were pre-defined.
+        if self.instances and klass not in self.instances:
+            raise TypeError("'instance_or_class' must be in 'instances'")
 
         for field in fields:
             self.setattr(instance, field, self.cleaned_data[field])

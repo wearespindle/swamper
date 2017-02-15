@@ -23,7 +23,7 @@ setup(
     name=janitor.__title__,
     version=janitor.__version__,
     description=('Janitor is a simple interface to clean input data and '
-                 'turning this data into objects.'),
+                 'turn this data into objects.'),
     long_description=long_description,
     url='https://github.com/wearespindle/janitor',
     author=janitor.__author__,

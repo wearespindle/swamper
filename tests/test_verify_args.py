@@ -2,7 +2,7 @@ from collections import namedtuple
 
 from pytest import raises, fail
 
-from janitor.base import BaseJanitor as Janitor
+from janitor.base import BaseJanitor
 
 
 def test_types_for_field_list_ok():
@@ -17,7 +17,7 @@ def test_types_for_field_list_ok():
         namedtuple('tuple', 'fields')(fields='name'),
     ):
         try:
-            janitor = Janitor(fields, data)
+            janitor = BaseJanitor(fields, data)
         except TypeError as e:
             fail(str(e))
 
@@ -35,7 +35,7 @@ def test_types_for_field_list_fail():
         'name',
     ):
         with raises(TypeError):
-            Janitor(fields, data)
+            BaseJanitor(fields, data)
 
 
 def test_types_for_data_ok():
@@ -48,7 +48,7 @@ def test_types_for_data_ok():
         namedtuple('tuple', 'name')(name='janitor')._asdict(),
     ):
         try:
-            janitor = Janitor(fields, data)
+            janitor = BaseJanitor(fields, data)
         except TypeError as e:
             fail(str(e))
 
@@ -65,44 +65,46 @@ def test_types_for_data_fail():
         namedtuple('tuple', 'name')(name='janitor'),
     ):
         with raises(TypeError):
-            Janitor(fields, data)
+            BaseJanitor(fields, data)
 
 
 def test_types_for_instances_ok():
     """
     Test objects you can use to provide data.
     """
+    class Janitor(BaseJanitor):
+        def build_instances(self):
+            self.instances = {
+                int: 4,
+                float: 5.0,
+                bytes: b'6',
+            }
+
     fields = ['name']
     data = {'name': 'janitor'}
-    for instances in (
-        # Since everything is an object, 'type(obj): obj' will work with these.
-        [4, 5.0, '6', u'7'],
-    ):
-        try:
-            Janitor(fields, data, instances)
-        except TypeError as e:
-            fail(str(e))
+    try:
+        Janitor(fields, data)
+    except TypeError as e:
+        fail(str(e))
 
 
 def test_types_for_instances_fail():
     """
     Test objects you cannot use to provide data.
     """
+    class Janitor(BaseJanitor):
+        def build_instances(self):
+            self.instances = (4, 5.0, '6')
+
     fields = ['name']
     data = {'name': 'janitor'}
-    for instances in (
-        {'int': 4,
-         'float': 5.0,
-         'basestring': '6',
-         'unicode': u'7'},
-    ):
-        with raises(TypeError):
-            Janitor(fields, data, instances)
+    with raises(TypeError):
+        Janitor(fields, data)
 
 
-def test_fix_me_an_object_types_for_field_list_fail():
+def test_build_or_update_object_types_for_field_list_fail():
     """
-    Test objects you cannot use to provide field names for `fix_me_an`.
+    Test objects you cannot use to provide field names for `build_or_update`.
     """
     data = {'name': 'janitor'}
     fields = ['name']
@@ -110,9 +112,11 @@ def test_fix_me_an_object_types_for_field_list_fail():
     class Object(object):
         name = ''
 
-    instances = [Object()]
+    class Janitor(BaseJanitor):
+        def build_instances(self):
+            self.instances[Object] = Object()
 
-    janitor = Janitor(fields, data, instances=instances)
+    janitor = Janitor(fields, data)
     assert janitor.errors == {}
 
     for fields in (
@@ -121,12 +125,12 @@ def test_fix_me_an_object_types_for_field_list_fail():
         'name',
     ):
         with raises(TypeError):
-            janitor.fix_me_an(Object, fields)
+            janitor.build_or_update(Object, fields)
 
 
-def test_fix_me_an_object_types_for_object_fail():
+def test_build_or_update_object_types_for_object_fail():
     """
-    Test types you cannot use to provide object class for `fix_me_an`.
+    Test types you cannot use to provide object class for `build_or_update`.
     """
     data = {'name': 'janitor'}
     fields = ['name']
@@ -137,10 +141,12 @@ def test_fix_me_an_object_types_for_object_fail():
     class AnotherObject(object):
         name = ''
 
-    instances = [Object()]
+    class Janitor(BaseJanitor):
+        def build_instances(self):
+            self.instances[Object] = Object()
 
-    janitor = Janitor(fields, data, instances=instances)
+    janitor = Janitor(fields, data)
     assert janitor.errors == {}
 
     with raises(TypeError):
-        janitor.fix_me_an(AnotherObject, fields)
+        janitor.build_or_update(AnotherObject, fields)

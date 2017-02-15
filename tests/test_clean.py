@@ -13,7 +13,7 @@ def test_clean_field_ok_return_value():
     fields = ['name']
 
     basejanitor = BaseJanitor(fields, data)
-    assert basejanitor.errors == {}
+    assert basejanitor.is_clean() is True
     assert basejanitor.cleaned_data['name'] == 'janitor'
 
     class Janitor(BaseJanitor):
@@ -25,7 +25,7 @@ def test_clean_field_ok_return_value():
             return [value]
 
     janitor = Janitor(fields, data)
-    assert janitor.errors == {}
+    assert janitor.is_clean() is True
     assert janitor.cleaned_data['name'] == ['janitor']
 
     class Janitor(BaseJanitor):
@@ -36,7 +36,7 @@ def test_clean_field_ok_return_value():
             self.cleaned_data['name'] = 'rotinaj'
 
     janitor = Janitor(fields, data)
-    assert janitor.errors == {}
+    assert janitor.is_clean() is True
     assert janitor.cleaned_data['name'] is None
 
 
@@ -49,7 +49,7 @@ def test_clean_field_raise_error():
     fields = ['name']
 
     basejanitor = BaseJanitor(fields, data)
-    assert basejanitor.errors == {}
+    assert basejanitor.is_clean() is True
 
     class Janitor(BaseJanitor):
         def clean_name(self, value):
@@ -63,6 +63,7 @@ def test_clean_field_raise_error():
             return value
 
     janitor = Janitor(fields, data)
+    assert janitor.is_clean() is False
     assert janitor.errors == {
         'name': ['Name must be a string'],
     }
@@ -78,7 +79,7 @@ def test_clean_add_error():
     fields = ['name']
 
     basejanitor = BaseJanitor(fields, data)
-    assert basejanitor.errors == {}
+    assert basejanitor.is_clean() is True
 
     class Janitor(BaseJanitor):
         def clean(self):
@@ -92,6 +93,7 @@ def test_clean_add_error():
             return self.cleaned_data
 
     janitor = Janitor(fields, data)
+    assert janitor.is_clean() is False
     assert janitor.errors == {
         'name': ['Name must be a string'],
     }
@@ -118,6 +120,41 @@ def test_clean_add_error_for_unknown_field():
             return self.cleaned_data
 
     janitor = Janitor(fields, data)
+    assert janitor.is_clean() is False
     assert janitor.errors == {
         None: ["No field named 'janitor'"],
+    }
+
+
+def test_clean_instances():
+    """
+    Test adding an error for an unknown field inside the global clean method
+    will trigger an exception.
+    """
+    class Object(object):
+        def __init__(self, name):
+            self.name = name
+
+    objects = [Object('jane'), Object('john')]
+
+    data = {'name': 'janitor'}
+    fields = ['name']
+
+    class Janitor(BaseJanitor):
+        def build_instances(self):
+            self.instances[Object] = Object(self.data['name'])
+
+        def clean_instances(self):
+            instance = self.instances[Object]
+            for obj in objects:
+                if obj.name == instance.name:
+                    # Match found, refers to an object.
+                    return
+
+            raise ValueError("No object with name 'janitor'")
+
+    janitor = Janitor(fields, data)
+    assert janitor.is_clean() is False
+    assert janitor.errors == {
+        None: ["No object with name 'janitor'"],
     }
