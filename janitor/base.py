@@ -149,6 +149,19 @@ class BaseJanitor(object):
             self._clean_fields()
             self._clean_all()
 
+    def test_is_blank(self, field, value):
+        """
+        Test if `value` for `field` can be marked as `blank`. Blank here means
+        value is an empty value but field exists in input data.
+        """
+        if (isinstance(value, collections.Iterable) and
+                not isinstance(value, six.string_types)):
+            is_empty = len(value) == 0
+        else:
+            is_empty = value in ['', None]
+
+        return is_empty and field in self.data
+
     def _clean_fields(self):
         """
         Run all clean methods for predefined fields, these methods are also
@@ -160,7 +173,8 @@ class BaseJanitor(object):
 
             try:
                 if hasattr(self, 'clean_%s' % field):
-                    value = getattr(self, 'clean_%s' % field)(value)
+                    is_blank = self.test_is_blank(field, value)
+                    value = getattr(self, 'clean_%s' % field)(value, is_blank=is_blank)
                     self.cleaned_data[field] = value
             except self.error_class as e:
                 self.add_error(field, e)

@@ -17,7 +17,7 @@ def test_clean_field_ok_return_value():
     assert basejanitor.cleaned_data['name'] == 'janitor'
 
     class Janitor(BaseJanitor):
-        def clean_name(self, value):
+        def clean_name(self, value, is_blank):
             """
             Deliberately change the value for this field for the purpose of
             testing that this method has been called.
@@ -29,7 +29,7 @@ def test_clean_field_ok_return_value():
     assert janitor.cleaned_data['name'] == ['janitor']
 
     class Janitor(BaseJanitor):
-        def clean_name(self, value):
+        def clean_name(self, value, is_blank):
             """
             Modifying cleaned_data instead of returning does not work.
             """
@@ -52,7 +52,7 @@ def test_clean_field_raise_error():
     assert basejanitor.is_clean() is True
 
     class Janitor(BaseJanitor):
-        def clean_name(self, value):
+        def clean_name(self, value, is_blank):
             """
             Raise an exception to validate this error is added for this field
             and removed from cleaned data.
@@ -124,6 +124,42 @@ def test_clean_add_error_for_unknown_field():
     assert janitor.errors == {
         None: ["No field named 'janitor'"],
     }
+
+
+def test_clean_is_blank():
+    """
+    Test value for is_blank for any field.
+    """
+    data = {
+        'name': 'janitor',
+        'name_1': None,
+        'name_2': '',
+        'name_3': [],
+        'name_4': 0,
+    }
+    fields = ['name', 'name_1', 'name_2', 'name_3', 'name_4', 'name_5']
+
+    class Janitor(BaseJanitor):
+        def clean_name(self, value, is_blank):
+            assert is_blank is False
+
+        def clean_name_1(self, value, is_blank):
+            assert is_blank is True
+
+        def clean_name_2(self, value, is_blank):
+            assert is_blank is True
+
+        def clean_name_3(self, value, is_blank):
+            assert is_blank is True
+
+        def clean_name_4(self, value, is_blank):
+            assert is_blank is False
+
+        def clean_name_5(self, value, is_blank):
+            assert is_blank is False
+
+    janitor = Janitor(fields, data)
+    janitor.is_clean()
 
 
 def test_clean_instances():

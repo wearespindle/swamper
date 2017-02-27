@@ -63,7 +63,7 @@ def test_build_or_update_fail():
     assert basejanitor.is_clean() is True
 
     class Janitor(BaseJanitor):
-        def clean_name(self, value):
+        def clean_name(self, value, is_blank):
             """
             Raise an exception to validate this error is added for this field
             and removed from cleaned data.
