@@ -102,6 +102,34 @@ def test_types_for_instances_fail():
         Janitor(fields, data)
 
 
+def test_types_for_instance_to_data_fields_ok():
+    """
+    Test objects you can use to map field names.
+    """
+    class Janitor(BaseJanitor):
+        instance_to_data_fields = {'first_name': 'name'}
+
+    fields = ['first_name']
+    data = {'name': 'janitor'}
+    try:
+        Janitor(fields, data)
+    except TypeError as e:
+        fail(str(e))
+
+
+def test_types_for_instance_to_data_fields_fail():
+    """
+    Test objects you cannot use to map field names.
+    """
+    class Janitor(BaseJanitor):
+        instance_to_data_fields = [('first_name', 'name')]
+
+    fields = ['first_name']
+    data = {'name': 'janitor'}
+    with raises(TypeError):
+        Janitor(fields, data)
+
+
 def test_build_or_update_object_types_for_field_list_fail():
     """
     Test objects you cannot use to provide field names for `build_or_update`.

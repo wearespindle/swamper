@@ -52,6 +52,32 @@ def test_build_or_update_update():
     assert obj.name == 'janitor'
 
 
+def test_build_or_update_update_with_field_mapping():
+    """
+    Test updating an object instance with attributes that were cleaned by the
+    janitor using different names for data fields.
+    """
+    data = {'name': 'janitor'}
+    fields = ['first_name']
+
+    class Object(object):
+        first_name = ''
+
+    class Janitor(BaseJanitor):
+        instance_to_data_fields = {'first_name': 'name'}
+
+        def build_instances(self):
+            obj = Object()
+            self.instances[Object] = obj
+
+    janitor = Janitor(fields, data)
+    assert janitor.errors == {}
+
+    obj = Object()
+    obj = janitor.build_or_update(obj, fields)
+    assert obj.first_name == 'janitor'
+
+
 def test_build_or_update_fail():
     """
     Test build_or_update will fail when there are errors messages defined.

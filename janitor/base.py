@@ -8,19 +8,22 @@ NON_FIELD_ERRORS = None
 
 
 class BaseJanitor(object):
+    # Allow for field name abstraction between data and instances.
+    instance_to_data_fields = {}
 
     def __init__(self, fields, data, error_class=ValueError, skip_verify=False):
         """
         Build a janitor that clean given fields from data.
 
         Args:
-            fields (list): list of field names to clean.
+            fields (list): list of data fields to clean.
             data (dict): input to clean.
             error_class (Exception): class to catch from cleaning methods,
                 these will end up as error messages.
             skip_verify (bool): toggle argument type checking (default=False).
         """
         self.fields = fields
+
         self.data = data
         self.instances = {}
         self.build_instances()
@@ -31,6 +34,14 @@ class BaseJanitor(object):
 
         self._errors = None
         self.error_class = error_class
+
+        # Re-map instance fields -> data fields.
+        self.fields = list(self.fields)
+        for i, field in enumerate(self.fields):
+            self.fields[i] = self.get_data_field(field)
+
+        # Build reverse map of instance_to_data_fields.
+        self.data_to_instance_fields = dict([(v, k) for k, v in six.iteritems(self.instance_to_data_fields)])
 
     def _verify_args(self):
         """
@@ -58,6 +69,10 @@ class BaseJanitor(object):
         if not isinstance(self.instances, collections.Mapping):
             raise TypeError("'instances' must be a 2-dimensional iterable (dict, ..)")
 
+        # Verify map type.
+        if not isinstance(self.instance_to_data_fields, collections.Mapping):
+            raise TypeError("'instance_to_data_fields' must be a 2-dimensional iterable (dict, ..)")
+
     def build_instances(self):
         """
         Build self.instances.
@@ -69,6 +84,18 @@ class BaseJanitor(object):
         Clean self.instances.
         """
         pass
+
+    def get_instance_field(self, field):
+        """
+        Map interface for getting an instance attribute name from a data field.
+        """
+        return self.data_to_instance_fields.get(field, field)
+
+    def get_data_field(self, field):
+        """
+        Map interface for getting a data field from an instance attribute name.
+        """
+        return self.instance_to_data_fields.get(field, field)
 
     def handle_error(self, field, error):
         """
@@ -108,29 +135,29 @@ class BaseJanitor(object):
         """
         return not self.errors
 
-    def add_error(self, field, message):
+    def add_error(self, data_field, message):
         """
         Add one or more error messages for a field. When adding an error for
         a field, this field is also removed from `cleaned_data`.
 
         Args:
-            field (str): name of the field to add the error for.
+            data_field (str): name of the field to add the error for.
             message (str|self.error_class): error message for given field.
 
         Raises:
             ValueError: if field was never specified when creating this janitor.
         """
-        error_list = self.handle_error(field, message)
+        error_list = self.handle_error(data_field, message)
 
-        if field not in self.errors:
-            if field != NON_FIELD_ERRORS and field not in self.fields:
-                raise ValueError("No field named '{}'".format(field))
+        if data_field not in self.errors:
+            if data_field != NON_FIELD_ERRORS and data_field not in self.fields:
+                raise ValueError("No field named '{}'".format(data_field))
             else:
-                self._errors[field] = []
+                self._errors[data_field] = []
 
-        self._errors[field].extend(error_list)
-        if field in self.cleaned_data:
-            del self.cleaned_data[field]
+        self._errors[data_field].extend(error_list)
+        if data_field in self.cleaned_data:
+            del self.cleaned_data[data_field]
 
     def full_clean(self):
         """
@@ -149,7 +176,7 @@ class BaseJanitor(object):
             self._clean_fields()
             self._clean_all()
 
-    def test_is_blank(self, field, value):
+    def test_is_blank(self, data_field, value):
         """
         Test if `value` for `field` can be marked as `blank`. Blank here means
         value is an empty value but field exists in input data.
@@ -160,24 +187,24 @@ class BaseJanitor(object):
         else:
             is_empty = value in ['', None]
 
-        return is_empty and field in self.data
+        return is_empty and data_field in self.data
 
     def _clean_fields(self):
         """
         Run all clean methods for predefined fields, these methods are also
         called when the correspondig field isn't present in the input data.
         """
-        for field in self.fields:
-            value = self.data.get(field)
-            self.cleaned_data[field] = value
+        for data_field in self.fields:
+            value = self.data.get(data_field)
+            self.cleaned_data[data_field] = value
 
             try:
-                if hasattr(self, 'clean_%s' % field):
-                    is_blank = self.test_is_blank(field, value)
-                    value = getattr(self, 'clean_%s' % field)(value, is_blank=is_blank)
-                    self.cleaned_data[field] = value
+                if hasattr(self, 'clean_%s' % data_field):
+                    is_blank = self.test_is_blank(data_field, value)
+                    value = getattr(self, 'clean_%s' % data_field)(value, is_blank=is_blank)
+                    self.cleaned_data[data_field] = value
             except self.error_class as e:
-                self.add_error(field, e)
+                self.add_error(data_field, e)
 
     def _clean_all(self):
         """
@@ -200,7 +227,7 @@ class BaseJanitor(object):
         """
         return self.cleaned_data
 
-    def setattr(self, instance, field, value):
+    def setattr(self, instance, field):
         """
         Assign value for field on instance.
 
@@ -209,12 +236,14 @@ class BaseJanitor(object):
 
         Args:
             instance (object): any object to set the value for field on.
-            field (str): name of the attribute to set from `cleaned_data`.
-            value (object): any value you want to assign for field on the
-                given instance.
+            field (str): name of the attribute to set a value for on
+                 `instance`.
         """
-        if field in self.cleaned_data:
-            setattr(instance, field, self.cleaned_data[field])
+        data_field = self.get_data_field(field)
+        instance_field = self.get_instance_field(field)
+
+        if data_field in self.cleaned_data:
+            setattr(instance, instance_field, self.cleaned_data[data_field])
 
     def build_or_update(self, instance_or_class, fields):
         """
@@ -255,6 +284,6 @@ class BaseJanitor(object):
             raise TypeError("'instance_or_class' must be in 'instances'")
 
         for field in fields:
-            self.setattr(instance, field, self.cleaned_data[field])
+            self.setattr(instance, field)
 
         return instance
