@@ -173,8 +173,10 @@ class BaseJanitor(object):
         except self.error_class as e:
             self.add_error(NON_FIELD_ERRORS, e)
         else:
-            self._clean_fields()
-            self._clean_all()
+            # Avoid cleaning fields when errors occurred during setup.
+            if not self._errors:
+                self._clean_fields()
+                self._clean_all()
 
     def test_is_blank(self, data_field, value):
         """
