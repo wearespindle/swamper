@@ -194,3 +194,52 @@ def test_clean_instances():
     assert janitor.errors == {
         None: ["No object with name 'janitor'"],
     }
+
+
+def test_clean_data_contains_instance_value():
+    """
+    Test values from instances remain when not in data.
+    """
+    data = {'first_name': 'John'}
+    fields = ['job_title', 'first_name']
+
+    class Job(object):
+        job_title = 'janitor'
+        first_name = ''
+
+    class Janitor(BaseJanitor):
+        def build_instances(self):
+            obj = Job()
+            self.instances[Job] = obj
+
+        def clean_instances(self):
+            """
+            `clean` depends on having both job_title and first_name, so provide
+            the data which isn't available from self.data by copying it from
+            an instance to self.cleaned_data.
+            """
+            if self.instances:
+                for model, instance in self.instances.items():
+                    # Update cleaned_data with fields from instance that aren't
+                    # part of the new data.
+                    initial_fields = set(fields) - set(self.data.keys())
+                    obj_data = {field: getattr(instance, field) for field in initial_fields}
+                    self.cleaned_data.update(obj_data)
+
+        def clean(self):
+            if self.cleaned_data['job_title'] == 'janitor':
+                if not self.cleaned_data['first_name'].startswith('J'):
+                    raise ValueError('Only people with a first name that begin '
+                                     'with the letter J can become janitors.')
+
+            return self.cleaned_data
+
+    janitor = Janitor(fields, data)
+    assert janitor.errors == {}
+    assert janitor.cleaned_data['job_title'] == 'janitor'
+    assert janitor.cleaned_data['first_name'] == 'John'
+
+    obj = Job()
+    obj = janitor.build_or_update(obj, fields)
+    assert obj.job_title == 'janitor'
+    assert obj.first_name == 'John'

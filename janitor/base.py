@@ -198,7 +198,8 @@ class BaseJanitor(object):
         """
         for data_field in self.fields:
             value = self.data.get(data_field)
-            self.cleaned_data[data_field] = value
+            if data_field not in self.cleaned_data:
+                self.cleaned_data[data_field] = value
 
             try:
                 if hasattr(self, 'clean_%s' % data_field):
