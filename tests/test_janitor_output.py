@@ -17,7 +17,7 @@ def test_build_or_update_get():
 
     class Janitor(BaseJanitor):
         def build_instances(self):
-            pass
+            self.instances = {}
 
     janitor = Janitor(fields, data)
     assert janitor.errors == {}
@@ -42,6 +42,7 @@ def test_build_or_update_update():
     class Janitor(BaseJanitor):
         def build_instances(self):
             obj = Object()
+            self.instances = {}
             self.instances[Object] = obj
 
     janitor = Janitor(fields, data)
@@ -68,6 +69,7 @@ def test_build_or_update_update_with_field_mapping():
 
         def build_instances(self):
             obj = Object()
+            self.instances = {}
             self.instances[Object] = obj
 
     janitor = Janitor(fields, data)

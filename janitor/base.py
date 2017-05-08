@@ -24,9 +24,7 @@ class BaseJanitor(object):
         """
         self.fields = fields
 
-        self.data = data
-        self.instances = {}
-        self.build_instances()
+        self.raw_data = data
 
         self.skip_verify = skip_verify
         if not self.skip_verify:
@@ -62,12 +60,8 @@ class BaseJanitor(object):
                 raise TypeError("'fields' must only contain field names")
 
         # Verify data type.
-        if not isinstance(self.data, collections.Mapping):
+        if not isinstance(self.raw_data, collections.Mapping):
             raise TypeError("'data' must be a 2-dimensional iterable (dict, ..)")
-
-        # Verify instances type.
-        if not isinstance(self.instances, collections.Mapping):
-            raise TypeError("'instances' must be a 2-dimensional iterable (dict, ..)")
 
         # Verify map type.
         if not isinstance(self.instance_to_data_fields, collections.Mapping):
@@ -77,7 +71,7 @@ class BaseJanitor(object):
         """
         Build self.instances.
         """
-        pass
+        self.instances = {}
 
     def clean_instances(self):
         """
@@ -167,6 +161,13 @@ class BaseJanitor(object):
         """
         self._errors = {}
         self.cleaned_data = {}
+        self.data = self.raw_data
+
+        self.build_instances()
+        if not self.skip_verify:
+            # Verify instances type.
+            if not isinstance(self.instances, collections.Mapping):
+                raise TypeError("'instances' must be a 2-dimensional iterable (dict, ..)")
 
         try:
             self.clean_instances()
@@ -189,7 +190,7 @@ class BaseJanitor(object):
         else:
             is_empty = value in ['', None]
 
-        return is_empty and data_field in self.data
+        return is_empty and data_field in self.raw_data
 
     def _clean_fields(self):
         """

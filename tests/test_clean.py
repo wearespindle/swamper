@@ -178,6 +178,7 @@ def test_clean_instances():
 
     class Janitor(BaseJanitor):
         def build_instances(self):
+            self.instances = {}
             self.instances[Object] = Object(self.data['name'])
 
         def clean_instances(self):
@@ -210,6 +211,7 @@ def test_clean_data_contains_instance_value():
     class Janitor(BaseJanitor):
         def build_instances(self):
             obj = Job()
+            self.instances = {}
             self.instances[Job] = obj
 
         def clean_instances(self):

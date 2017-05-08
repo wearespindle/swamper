@@ -52,7 +52,7 @@ def test_types_for_data_ok():
         except TypeError as e:
             fail(str(e))
 
-        assert janitor.data['name'] == 'janitor'
+        assert janitor.raw_data['name'] == 'janitor'
 
 
 def test_types_for_data_fail():
@@ -83,7 +83,7 @@ def test_types_for_instances_ok():
     fields = ['name']
     data = {'name': 'janitor'}
     try:
-        Janitor(fields, data)
+        Janitor(fields, data).is_clean()
     except TypeError as e:
         fail(str(e))
 
@@ -99,7 +99,7 @@ def test_types_for_instances_fail():
     fields = ['name']
     data = {'name': 'janitor'}
     with raises(TypeError):
-        Janitor(fields, data)
+        Janitor(fields, data).is_clean()
 
 
 def test_types_for_instance_to_data_fields_ok():
@@ -142,6 +142,7 @@ def test_build_or_update_object_types_for_field_list_fail():
 
     class Janitor(BaseJanitor):
         def build_instances(self):
+            self.instances = {}
             self.instances[Object] = Object()
 
     janitor = Janitor(fields, data)
@@ -171,6 +172,7 @@ def test_build_or_update_object_types_for_object_fail():
 
     class Janitor(BaseJanitor):
         def build_instances(self):
+            self.instances = {}
             self.instances[Object] = Object()
 
     janitor = Janitor(fields, data)
