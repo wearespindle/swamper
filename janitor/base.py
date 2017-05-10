@@ -41,6 +41,12 @@ class BaseJanitor(object):
         # Build reverse map of instance_to_data_fields.
         self.data_to_instance_fields = dict([(v, k) for k, v in six.iteritems(self.instance_to_data_fields)])
 
+        # Build list of instance fields.
+        self.instance_fields = self.fields[:]  # copy
+        for i, data_field in enumerate(self.instance_fields):
+            instance_field = self.get_instance_field(data_field)
+            self.instance_fields[i] = instance_field
+
     def _verify_args(self):
         """
         Validate types for variables that indicate what to clean.
