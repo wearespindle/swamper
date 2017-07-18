@@ -33,6 +33,12 @@ class BaseJanitor(object):
         self._errors = None
         self.error_class = error_class
 
+        self.map_fields()
+
+    def map_fields(self):
+        """
+        Re-map instance and data fields.
+        """
         # Re-map instance fields -> data fields.
         self.fields = list(self.fields)
         for i, field in enumerate(self.fields):
