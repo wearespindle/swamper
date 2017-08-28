@@ -2,14 +2,14 @@ from collections import namedtuple
 
 from pytest import raises, fail
 
-from janitor.base import BaseJanitor
+from swamper.base import BaseSwamper
 
 
 def test_types_for_field_list_ok():
     """
     Test objects you can use to provide field names.
     """
-    data = {'name': 'janitor'}
+    data = {'name': 'swamper'}
     for fields in (
         ['name'],
         ('name',),
@@ -17,25 +17,25 @@ def test_types_for_field_list_ok():
         namedtuple('tuple', 'fields')(fields='name'),
     ):
         try:
-            janitor = BaseJanitor(fields, data)
+            swamper = BaseSwamper(fields, data)
         except TypeError as e:
             fail(str(e))
 
-        assert 'name' in janitor.fields
+        assert 'name' in swamper.fields
 
 
 def test_types_for_field_list_fail():
     """
     Test objects you cannot use to provide field names.
     """
-    data = {'name': 'janitor'}
+    data = {'name': 'swamper'}
     for fields in (
         {'field': 'name'},
         [('name',)],
         'name',
     ):
         with raises(TypeError):
-            BaseJanitor(fields, data)
+            BaseSwamper(fields, data)
 
 
 def test_types_for_data_ok():
@@ -44,15 +44,15 @@ def test_types_for_data_ok():
     """
     fields = ['name']
     for data in (
-        {'name': 'janitor'},
-        namedtuple('tuple', 'name')(name='janitor')._asdict(),
+        {'name': 'swamper'},
+        namedtuple('tuple', 'name')(name='swamper')._asdict(),
     ):
         try:
-            janitor = BaseJanitor(fields, data)
+            swamper = BaseSwamper(fields, data)
         except TypeError as e:
             fail(str(e))
 
-        assert janitor.raw_data['name'] == 'janitor'
+        assert swamper.raw_data['name'] == 'swamper'
 
 
 def test_types_for_data_fail():
@@ -61,18 +61,18 @@ def test_types_for_data_fail():
     """
     fields = ['name']
     for data in (
-        ('janitor',),
-        namedtuple('tuple', 'name')(name='janitor'),
+        ('swamper',),
+        namedtuple('tuple', 'name')(name='swamper'),
     ):
         with raises(TypeError):
-            BaseJanitor(fields, data)
+            BaseSwamper(fields, data)
 
 
 def test_types_for_instances_ok():
     """
     Test objects you can use to provide data.
     """
-    class Janitor(BaseJanitor):
+    class Swamper(BaseSwamper):
         def build_instances(self):
             self.instances = {
                 int: 4,
@@ -81,9 +81,9 @@ def test_types_for_instances_ok():
             }
 
     fields = ['name']
-    data = {'name': 'janitor'}
+    data = {'name': 'swamper'}
     try:
-        Janitor(fields, data).is_clean()
+        Swamper(fields, data).is_clean()
     except TypeError as e:
         fail(str(e))
 
@@ -92,27 +92,27 @@ def test_types_for_instances_fail():
     """
     Test objects you cannot use to provide data.
     """
-    class Janitor(BaseJanitor):
+    class Swamper(BaseSwamper):
         def build_instances(self):
             self.instances = (4, 5.0, '6')
 
     fields = ['name']
-    data = {'name': 'janitor'}
+    data = {'name': 'swamper'}
     with raises(TypeError):
-        Janitor(fields, data).is_clean()
+        Swamper(fields, data).is_clean()
 
 
 def test_types_for_instance_to_data_fields_ok():
     """
     Test objects you can use to map field names.
     """
-    class Janitor(BaseJanitor):
+    class Swamper(BaseSwamper):
         instance_to_data_fields = {'first_name': 'name'}
 
     fields = ['first_name']
-    data = {'name': 'janitor'}
+    data = {'name': 'swamper'}
     try:
-        Janitor(fields, data)
+        Swamper(fields, data)
     except TypeError as e:
         fail(str(e))
 
@@ -121,32 +121,32 @@ def test_types_for_instance_to_data_fields_fail():
     """
     Test objects you cannot use to map field names.
     """
-    class Janitor(BaseJanitor):
+    class Swamper(BaseSwamper):
         instance_to_data_fields = [('first_name', 'name')]
 
     fields = ['first_name']
-    data = {'name': 'janitor'}
+    data = {'name': 'swamper'}
     with raises(TypeError):
-        Janitor(fields, data)
+        Swamper(fields, data)
 
 
 def test_build_or_update_object_types_for_field_list_fail():
     """
     Test objects you cannot use to provide field names for `build_or_update`.
     """
-    data = {'name': 'janitor'}
+    data = {'name': 'swamper'}
     fields = ['name']
 
     class Object(object):
         name = ''
 
-    class Janitor(BaseJanitor):
+    class Swamper(BaseSwamper):
         def build_instances(self):
             self.instances = {}
             self.instances[Object] = Object()
 
-    janitor = Janitor(fields, data)
-    assert janitor.errors == {}
+    swamper = Swamper(fields, data)
+    assert swamper.errors == {}
 
     for fields in (
         {'field': 'name'},
@@ -154,14 +154,14 @@ def test_build_or_update_object_types_for_field_list_fail():
         'name',
     ):
         with raises(TypeError):
-            janitor.build_or_update(Object, fields)
+            swamper.build_or_update(Object, fields)
 
 
 def test_build_or_update_object_types_for_object_fail():
     """
     Test types you cannot use to provide object class for `build_or_update`.
     """
-    data = {'name': 'janitor'}
+    data = {'name': 'swamper'}
     fields = ['name']
 
     class Object(object):
@@ -170,13 +170,13 @@ def test_build_or_update_object_types_for_object_fail():
     class AnotherObject(object):
         name = ''
 
-    class Janitor(BaseJanitor):
+    class Swamper(BaseSwamper):
         def build_instances(self):
             self.instances = {}
             self.instances[Object] = Object()
 
-    janitor = Janitor(fields, data)
-    assert janitor.errors == {}
+    swamper = Swamper(fields, data)
+    assert swamper.errors == {}
 
     with raises(TypeError):
-        janitor.build_or_update(AnotherObject, fields)
+        swamper.build_or_update(AnotherObject, fields)

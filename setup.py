@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-import janitor
+import swamper
 
 
 try:
@@ -20,15 +20,15 @@ tests_require = [
 ]
 
 setup(
-    name=janitor.__title__,
-    version=janitor.__version__,
-    description=('Janitor is a simple interface to clean input data and '
+    name=swamper.__title__,
+    version=swamper.__version__,
+    description=('Swamper is a simple interface to clean input data and '
                  'turn this data into objects.'),
     long_description=long_description,
-    url='https://github.com/wearespindle/janitor',
-    author=janitor.__author__,
-    author_email=janitor.__email__,
-    license=janitor.__license__,
+    url='https://github.com/wearespindle/swamper',
+    author=swamper.__author__,
+    author_email=swamper.__email__,
+    license=swamper.__license__,
     install_requires=install_requires,
     tests_require=tests_require,
     extras_require={
@@ -36,7 +36,7 @@ setup(
     },
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
 
-    keyword='janitor clean cleaning sanitation',
+    keyword='swamper clean cleaning sanitation',
     classifiers=[
         # Status.
         'Development Status :: 3 - Alpha',

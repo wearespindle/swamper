@@ -1,6 +1,7 @@
-# Janitor
+# Swamper 
+[![Build Status](https://travis-ci.org/wearespindle/swamper.svg?branch=master)](https://travis-ci.org/wearespindle/swamper)
 
-Janitor is here for you to simplify cleaning input data and building python
+Swamper is here for you to simplify cleaning input data and building python
 objects from this data.
 
 ## Status
@@ -12,12 +13,13 @@ Currently actively used and watched.
 ### Requirements
 
  * python 2.7
+ * python 3.3
  * python 3.4
+ * python 3.5
 
 ### Installation
 
-Currently installing from github is the only way. Will be on PyPI in
-the near future.
+Installation can be done from github or PyPI.
 
 ### Running
 
@@ -37,17 +39,17 @@ class Company(object):
 ```python
 import unicodedata
 
-from janitor.base import BaseJanitor
+from swamper.base import BaseSwamper
 
 
-class CompanyJanitor(BaseJanitor):
+class CompanySwamper(BaseSwamper):
     fields = [
         'name',
         'github_address',
     ]
 
     def __init__(self, data):
-        super(CompanyJanitor, self).__init__(self.fields, data)
+        super(CompanySwamper, self).__init__(self.fields, data)
 
     def clean_name(self, name, is_blank):
         if is_blank or len(name.strip()) == 0:
@@ -67,16 +69,16 @@ class CompanyJanitor(BaseJanitor):
 ```python
 
 from .models import Company
-from .validate import CompanyJanitor
+from .validate import CompanySwamper
 
 
 data = {
     'name': u'Devhouse Spindl\xe9',
     'github_address': 'wearespindle',
 }
-janitor = CompanyJanitor(data)
-assert janitor.is_clean()
-company = janitor.build_or_update(Company, ['name', 'github_address'])
+swamper = CompanySwamper(data)
+assert swamper.is_clean()
+company = swamper.build_or_update(Company, ['name', 'github_address'])
 
 assert company.name == 'Devhouse Spindle'
 assert company.github_address == 'https://github.com/wearespindle'
@@ -98,7 +100,7 @@ The changelog can be found in the [CHANGELOG.md](CHANGELOG.md) file.
 
 ### In progress
 
- * Publish on pypi
+ * Nothing at the moment
 
 ### Future
 

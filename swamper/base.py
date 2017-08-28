@@ -7,13 +7,13 @@ import six
 NON_FIELD_ERRORS = None
 
 
-class BaseJanitor(object):
+class BaseSwamper(object):
     # Allow for field name abstraction between data and instances.
     instance_to_data_fields = {}
 
     def __init__(self, fields, data, error_class=ValueError, skip_verify=False):
         """
-        Build a janitor that clean given fields from data.
+        Build a swamper that clean given fields from data.
 
         Args:
             fields (list): list of data fields to clean.
@@ -151,7 +151,7 @@ class BaseJanitor(object):
             message (str|self.error_class): error message for given field.
 
         Raises:
-            ValueError: if field was never specified when creating this janitor.
+            ValueError: if field was never specified when creating this swamper.
         """
         error_list = self.handle_error(data_field, message)
 

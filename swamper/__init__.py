@@ -1,4 +1,4 @@
-__title__ = 'janitor'
+__title__ = 'swamper'
 __author__ = 'Devhouse Spindle'
 __email__ = 'opensource@wearespindle.com'
 __version__ = '0.1'

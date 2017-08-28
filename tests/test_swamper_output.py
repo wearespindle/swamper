@@ -1,28 +1,28 @@
 from pytest import raises
 import six
 
-from janitor.base import BaseJanitor
+from swamper.base import BaseSwamper
 
 
 def test_build_or_update_get():
     """
     Test building an object instance with attributes that were cleaned by the
-    janitor.
+    swamper.
     """
-    data = {'name': 'janitor'}
+    data = {'name': 'swamper'}
     fields = ['name']
 
     class Object(object):
         name = ''
 
-    class Janitor(BaseJanitor):
+    class Swamper(BaseSwamper):
         def build_instances(self):
             self.instances = {}
 
-    janitor = Janitor(fields, data)
-    assert janitor.errors == {}
+    swamper = Swamper(fields, data)
+    assert swamper.errors == {}
 
-    obj = janitor.build_or_update(Object, [])
+    obj = swamper.build_or_update(Object, [])
 
     assert obj.name == ''
     assert isinstance(obj, Object)
@@ -31,40 +31,40 @@ def test_build_or_update_get():
 def test_build_or_update_update():
     """
     Test updating an object instance with attributes that were cleaned by the
-    janitor.
+    swamper.
     """
-    data = {'name': 'janitor'}
+    data = {'name': 'swamper'}
     fields = ['name']
 
     class Object(object):
         name = ''
 
-    class Janitor(BaseJanitor):
+    class Swamper(BaseSwamper):
         def build_instances(self):
             obj = Object()
             self.instances = {}
             self.instances[Object] = obj
 
-    janitor = Janitor(fields, data)
-    assert janitor.errors == {}
+    swamper = Swamper(fields, data)
+    assert swamper.errors == {}
 
     obj = Object()
-    obj = janitor.build_or_update(obj, fields)
-    assert obj.name == 'janitor'
+    obj = swamper.build_or_update(obj, fields)
+    assert obj.name == 'swamper'
 
 
 def test_build_or_update_update_with_field_mapping():
     """
     Test updating an object instance with attributes that were cleaned by the
-    janitor using different names for data fields.
+    swamper using different names for data fields.
     """
-    data = {'name': 'janitor'}
+    data = {'name': 'swamper'}
     fields = ['first_name']
 
     class Object(object):
         first_name = ''
 
-    class Janitor(BaseJanitor):
+    class Swamper(BaseSwamper):
         instance_to_data_fields = {'first_name': 'name'}
 
         def build_instances(self):
@@ -72,12 +72,12 @@ def test_build_or_update_update_with_field_mapping():
             self.instances = {}
             self.instances[Object] = obj
 
-    janitor = Janitor(fields, data)
-    assert janitor.errors == {}
+    swamper = Swamper(fields, data)
+    assert swamper.errors == {}
 
     obj = Object()
-    obj = janitor.build_or_update(obj, fields)
-    assert obj.first_name == 'janitor'
+    obj = swamper.build_or_update(obj, fields)
+    assert obj.first_name == 'swamper'
 
 
 def test_build_or_update_fail():
@@ -87,10 +87,10 @@ def test_build_or_update_fail():
     data = {'name': 4567}
     fields = ['name']
 
-    basejanitor = BaseJanitor(fields, data)
-    assert basejanitor.is_clean() is True
+    baseswamper = BaseSwamper(fields, data)
+    assert baseswamper.is_clean() is True
 
-    class Janitor(BaseJanitor):
+    class Swamper(BaseSwamper):
         def clean_name(self, value, is_blank):
             """
             Raise an exception to validate this error is added for this field
@@ -101,8 +101,8 @@ def test_build_or_update_fail():
 
             return value
 
-    janitor = Janitor(fields, data)
-    assert janitor.is_clean() is False
+    swamper = Swamper(fields, data)
+    assert swamper.is_clean() is False
 
     with raises(ValueError):
-        janitor.build_or_update(object, fields)
+        swamper.build_or_update(object, fields)
